@@ -5,18 +5,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: mytypes.sample.template.crossplane.io
+  name: serverinstances.server.hertznercloud.crossplane.io
 spec:
-  group: sample.template.crossplane.io
+  group: server.hertznercloud.crossplane.io
   names:
     categories:
     - crossplane
     - managed
-    - template
-    kind: MyType
-    listKind: MyTypeList
-    plural: mytypes
-    singular: mytype
+    - hertznercloud
+    kind: ServerInstance
+    listKind: ServerInstanceList
+    plural: serverinstances
+    singular: serverinstance
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A MyType is an example API type.
+        description: A ServerInstance is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A MyTypeSpec defines the desired state of a MyType.
+            description: A ServerInstanceSpec defines the desired state of a ServerInstance.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,7 +62,8 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: MyTypeParameters are the configurable fields of a MyType.
+                description: ServerInstanceParameters are the configurable fields
+                  of a ServerInstance.
                 properties:
                   configurableField:
                     type: string
@@ -241,10 +242,12 @@ spec:
             - forProvider
             type: object
           status:
-            description: A MyTypeStatus represents the observed state of a MyType.
+            description: A ServerInstanceStatus represents the observed state of a
+              ServerInstance.
             properties:
               atProvider:
-                description: MyTypeObservation are the observable fields of a MyType.
+                description: ServerInstanceObservation are the observable fields of
+                  a ServerInstance.
                 properties:
                   observableField:
                     type: string
