@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,19 +39,26 @@ import (
 )
 
 const (
-	errNotServerInstance    = "managed resource is not a ServerInstance custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotServerInstance = "managed resource is not a ServerInstance custom resource"
+	errTrackPCUsage      = "cannot track ProviderConfig usage"
+	errGetPC             = "cannot get ProviderConfig"
+	errGetCreds          = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
-// A NoOpService does nothing.
-type NoOpService struct{}
+// A ServerInstanceService does nothing.
+type ServerInstanceService struct {
+	client *hcloud.ServerClient
+}
 
 var (
-	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
+	newServerInstanceService = func(creds []byte) (*ServerInstanceService, error) {
+		c := hcloud.NewClient(hcloud.WithToken(string(creds))).Server
+		return &ServerInstanceService{
+			client: &c,
+		}, nil
+	}
 )
 
 // Setup adds a controller that reconciles ServerInstance managed resources.
@@ -67,7 +75,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newNoOpService}),
+			newServiceFn: newServerInstanceService}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
@@ -84,7 +92,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	newServiceFn func(creds []byte) (*ServerInstanceService, error)
 }
 
 // Connect typically produces an ExternalClient by:
@@ -124,9 +132,8 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	// A 'client' used to connect to the external resource API. In practice this
-	// would be something like an AWS SDK client.
-	service interface{}
+	// client  hcloud.Client
+	service *ServerInstanceService
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
