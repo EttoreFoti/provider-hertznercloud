@@ -29,12 +29,16 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/provider-hertznercloud/apis/server/v1alpha1"
 	apisv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
+	hertznercloud "github.com/crossplane/provider-hertznercloud/internal/clients"
+	"github.com/crossplane/provider-hertznercloud/internal/clients/serverinstance"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/features"
 )
 
@@ -49,14 +53,21 @@ const (
 
 // A ServerInstanceService does nothing.
 type ServerInstanceService struct {
-	client *hcloud.ServerClient
+	helper *hertznercloud.Client
+	client serverinstance.ServerClient
 }
 
 var (
 	newServerInstanceService = func(creds []byte) (*ServerInstanceService, error) {
-		c := hcloud.NewClient(hcloud.WithToken(string(creds))).Server
+		c, err := hertznercloud.NewClientHertzner(creds)
+
+		if err != nil {
+			return nil, err
+		}
+
 		return &ServerInstanceService{
-			client: &c,
+			helper: c,
+			client: &c.HertznerClient.Server,
 		}, nil
 	}
 )
@@ -145,6 +156,50 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
 
+	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+
+	// fmt.Println("\n\n svr:", svr)
+
+	// fmt.Println("\n\n resp:", *resp)
+	// bs, _ := io.ReadAll(resp.Body)
+	// fmt.Println("\n\n resp:", string(bs))
+
+	// fmt.Println("\n\n err:", err.(hcloud.Error))
+
+	if svr == nil && err == nil {
+		return managed.ExternalObservation{
+			ResourceExists: false,
+		}, nil
+	}
+
+	if err != nil {
+		if hErr, ok := err.(*hcloud.Error); ok && hErr.Code == hcloud.ErrorCodeNotFound { // this might need improving!!
+			return managed.ExternalObservation{
+				ResourceExists: false,
+			}, nil
+		}
+	}
+
+	if svr != nil {
+		if svr.Status == hcloud.ServerStatusRunning {
+
+			cr.Status.SetConditions(xpv1.Available())
+
+			isUpdated, e := serverinstance.IsUpToDate(cr.Spec.ForProvider.DeepCopy(), svr)
+
+			if e != nil {
+				return managed.ExternalObservation{}, e
+			}
+
+			if !isUpdated && e == nil {
+				return managed.ExternalObservation{
+					ResourceExists:   true,
+					ResourceUpToDate: false,
+				}, nil
+			}
+		}
+	}
+
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -170,6 +225,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
+	serverCreateOps, _ := serverinstance.FromServerSpecToServerRequestOpts(*cr.Spec.ForProvider.DeepCopy(), *c.service.helper, ctx)
+	serverCreateOps.Name = meta.GetExternalName(cr)
+
+	scr, _, err := c.service.client.Create(ctx, *serverCreateOps)
+
+	if err != nil {
+		return managed.ExternalCreation{
+			// Optionally return any details that may be required to connect to the
+			// external resource. These will be stored as the connection secret.
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, err
+	}
+
+	cr.Status.AtProvider.State = string(scr.Server.Status)
+
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -183,7 +253,17 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotServerInstance)
 	}
 
-	fmt.Printf("Updating: %+v", cr)
+	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+
+	opts := hcloud.ServerUpdateOpts{
+		Labels: *cr.Spec.ForProvider.DeepCopy().Labels,
+	}
+
+	c.service.client.Update(ctx, svr, opts)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -198,7 +278,17 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotServerInstance)
 	}
 
-	fmt.Printf("Deleting: %+v", cr)
+	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return err
+	}
+
+	_, e := c.service.client.Delete(ctx, svr)
+
+	if e != nil {
+		return e
+	}
 
 	return nil
 }

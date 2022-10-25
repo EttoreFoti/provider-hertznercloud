@@ -65,10 +65,51 @@ spec:
                 description: ServerInstanceParameters are the configurable fields
                   of a ServerInstance.
                 properties:
-                  configurableField:
+                  automount:
+                    type: boolean
+                  datacenter:
                     type: string
+                  firewalls:
+                    items:
+                      type: string
+                    type: array
+                  image:
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  location:
+                    type: string
+                  name:
+                    type: string
+                  networks:
+                    items:
+                      type: string
+                    type: array
+                  placement_group:
+                    type: integer
+                  public_net_ipv4:
+                    type: boolean
+                  public_net_ipv6:
+                    type: boolean
+                  server_type:
+                    type: string
+                  ssh_keys:
+                    items:
+                      type: string
+                    type: array
+                  start_after_create:
+                    type: boolean
+                  user_data:
+                    type: string
+                  volumes:
+                    items:
+                      type: integer
+                    type: array
                 required:
-                - configurableField
+                - image
+                - server_type
                 type: object
               providerConfigRef:
                 default:
@@ -249,7 +290,7 @@ spec:
                 description: ServerInstanceObservation are the observable fields of
                   a ServerInstance.
                 properties:
-                  observableField:
+                  status:
                     type: string
                 type: object
               conditions:

@@ -27,12 +27,27 @@ import (
 
 // ServerInstanceParameters are the configurable fields of a ServerInstance.
 type ServerInstanceParameters struct {
-	ConfigurableField string `json:"configurableField"`
+	Name             string             `json:"name,omitempty"` // TODO check
+	ServerType       string             `json:"server_type"`
+	Image            string             `json:"image"` // name not ID
+	SSHKeys          *[]string          `json:"ssh_keys,omitempty"`
+	Location         *string            `json:"location,omitempty"`   // name
+	Datacenter       *string            `json:"datacenter,omitempty"` // name
+	UserData         *string            `json:"user_data,omitempty"`
+	StartAfterCreate *bool              `json:"start_after_create,omitempty"`
+	Labels           *map[string]string `json:"labels,omitempty"`
+	Automount        *bool              `json:"automount,omitempty"`
+	Volumes          *[]int             `json:"volumes,omitempty"`
+	Networks         *[]string          `json:"networks,omitempty"`  // nmae
+	Firewalls        *[]string          `json:"firewalls,omitempty"` // name
+	PlacementGroup   *int               `json:"placement_group,omitempty"`
+	PublicNetIPv4    *bool              `json:"public_net_ipv4,omitempty"` // to fix json definition
+	PublicNetIPv6    *bool              `json:"public_net_ipv6,omitempty"`
 }
 
 // ServerInstanceObservation are the observable fields of a ServerInstance.
 type ServerInstanceObservation struct {
-	ObservableField string `json:"observableField,omitempty"`
+	State string `json:"status,omitempty"`
 }
 
 // A ServerInstanceSpec defines the desired state of a ServerInstance.

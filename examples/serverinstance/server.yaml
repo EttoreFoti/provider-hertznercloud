@@ -1,0 +1,22 @@
+apiVersion: server.hertznercloud.crossplane.io/v1alpha1
+kind: ServerInstance
+metadata:
+  name: test
+spec:
+  forProvider:
+    name: test
+    server_type: cx11
+    image: ubuntu-22.04
+    ssh_keys: []
+    location: nbg1
+    # datacenter: nbg1-dc3
+    user_data: ''
+    start_after_create: true
+    labels:
+      test: 'testacaso' 
+    networks: []
+    firewalls: []
+    public_net_ipv4: true
+    public_net_ipv6: true
+  providerConfigRef:
+    name: provider-hertznercloud-config
