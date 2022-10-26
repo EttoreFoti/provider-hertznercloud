@@ -53,8 +53,7 @@ const (
 
 // A ServerInstanceService does nothing.
 type ServerInstanceService struct {
-	helper *hertznercloud.Client
-	client serverinstance.ServerClient
+	client *hcloud.Client
 }
 
 var (
@@ -66,8 +65,7 @@ var (
 		}
 
 		return &ServerInstanceService{
-			helper: c,
-			client: &c.HertznerClient.Server,
+			client: c,
 		}, nil
 	}
 )
@@ -156,7 +154,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
 
-	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+	svr, _, err := c.service.client.Server.Get(ctx, meta.GetExternalName(cr))
 
 	// fmt.Println("\n\n svr:", svr)
 
@@ -225,10 +223,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
-	serverCreateOps, _ := serverinstance.FromServerSpecToServerRequestOpts(*cr.Spec.ForProvider.DeepCopy(), *c.service.helper, ctx)
+	serverCreateOps, _ := serverinstance.FromServerSpecToServerRequestOpts(*cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
 	serverCreateOps.Name = meta.GetExternalName(cr)
 
-	scr, _, err := c.service.client.Create(ctx, *serverCreateOps)
+	scr, _, err := c.service.client.Server.Create(ctx, *serverCreateOps)
 
 	if err != nil {
 		return managed.ExternalCreation{
@@ -253,7 +251,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotServerInstance)
 	}
 
-	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+	svr, _, err := c.service.client.Server.Get(ctx, meta.GetExternalName(cr))
 
 	if err != nil {
 		return managed.ExternalUpdate{}, err
@@ -263,7 +261,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		Labels: *cr.Spec.ForProvider.DeepCopy().Labels,
 	}
 
-	c.service.client.Update(ctx, svr, opts)
+	c.service.client.Server.Update(ctx, svr, opts)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -278,13 +276,13 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotServerInstance)
 	}
 
-	svr, _, err := c.service.client.Get(ctx, meta.GetExternalName(cr))
+	svr, _, err := c.service.client.Server.Get(ctx, meta.GetExternalName(cr))
 
 	if err != nil {
 		return err
 	}
 
-	_, e := c.service.client.Delete(ctx, svr)
+	_, e := c.service.client.Server.Delete(ctx, svr)
 
 	if e != nil {
 		return e

@@ -6,18 +6,12 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-type Client struct {
-	HertznerClient *hcloud.Client
-}
-
-func NewClientHertzner(creds []byte) (*Client, error) {
+func NewClientHertzner(creds []byte) (*hcloud.Client, error) {
 	c := hcloud.NewClient(hcloud.WithToken(string(creds)))
 
 	if c == nil {
 		return nil, errors.New("unable to create client")
 	}
 
-	return &Client{
-		HertznerClient: c,
-	}, nil
+	return c, nil
 }

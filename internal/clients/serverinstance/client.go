@@ -4,40 +4,39 @@ import (
 	"context"
 	"fmt"
 
-	hertznercloudclient "github.com/crossplane/provider-hertznercloud/internal/clients"
-
 	"github.com/crossplane/provider-hertznercloud/apis/server/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-type ServerClient interface {
-	GetByID(ctx context.Context, id int) (*hcloud.Server, *hcloud.Response, error)
-	GetByName(ctx context.Context, name string) (*hcloud.Server, *hcloud.Response, error)
-	Get(ctx context.Context, idOrName string) (*hcloud.Server, *hcloud.Response, error)
-	Create(ctx context.Context, opts hcloud.ServerCreateOpts) (hcloud.ServerCreateResult, *hcloud.Response, error)
-	Delete(ctx context.Context, server *hcloud.Server) (*hcloud.Response, error)
-	Update(ctx context.Context, server *hcloud.Server, opts hcloud.ServerUpdateOpts) (*hcloud.Server, *hcloud.Response, error)
-}
+// All the below might be useful for future refactory if we find a solution to only use ServerCLient withouth the need to call the main function
+// type ServerClient interface {
+// 	GetByID(ctx context.Context, id int) (*hcloud.Server, *hcloud.Response, error)
+// 	GetByName(ctx context.Context, name string) (*hcloud.Server, *hcloud.Response, error)
+// 	Get(ctx context.Context, idOrName string) (*hcloud.Server, *hcloud.Response, error)
+// 	Create(ctx context.Context, opts hcloud.ServerCreateOpts) (hcloud.ServerCreateResult, *hcloud.Response, error)
+// 	Delete(ctx context.Context, server *hcloud.Server) (*hcloud.Response, error)
+// 	Update(ctx context.Context, server *hcloud.Server, opts hcloud.ServerUpdateOpts) (*hcloud.Server, *hcloud.Response, error)
+// }
 
-func NewServerClient(creds []byte) (ServerClient, error) {
-	c, err := hertznercloudclient.NewClientHertzner(creds)
+// func NewServerClient(creds []byte) (ServerClient, error) {
+// 	c, err := hertznercloudclient.NewClientHertzner(creds)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &c.Server, nil
+// }
+
+func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c *hcloud.Client, ctx context.Context) (*hcloud.ServerCreateOpts, error) {
+
+	serverType, _, err := c.ServerType.GetByName(ctx, in.ServerType)
+
 	if err != nil {
 		return nil, err
 	}
-	return &c.HertznerClient.Server, nil
-}
 
-func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c hertznercloudclient.Client, ctx context.Context) (*hcloud.ServerCreateOpts, error) {
-
-	serverType, _, err := c.HertznerClient.ServerType.GetByName(ctx, in.ServerType)
-
-	if err != nil {
-		return nil, err
-	}
-
-	image, _, err := c.HertznerClient.Image.GetByName(ctx, in.Image)
+	image, _, err := c.Image.GetByName(ctx, in.Image)
 
 	if err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	if in.SSHKeys != nil {
 		var ssh_keys []*hcloud.SSHKey
 		for _, key_id := range *in.SSHKeys {
-			key, _, err := c.HertznerClient.SSHKey.GetByName(ctx, key_id)
+			key, _, err := c.SSHKey.GetByName(ctx, key_id)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +60,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	}
 
 	if in.Location != nil {
-		location, _, err := c.HertznerClient.Location.GetByName(ctx, *in.Location)
+		location, _, err := c.Location.GetByName(ctx, *in.Location)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +68,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	}
 
 	if in.Datacenter != nil {
-		datacenter, _, err := c.HertznerClient.Datacenter.GetByName(ctx, *(in.Datacenter))
+		datacenter, _, err := c.Datacenter.GetByName(ctx, *(in.Datacenter))
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +78,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	if in.Volumes != nil {
 		var volumes []*hcloud.Volume
 		for _, volume := range *in.Volumes {
-			volume, _, err := c.HertznerClient.Volume.GetByID(ctx, volume)
+			volume, _, err := c.Volume.GetByID(ctx, volume)
 			if err != nil {
 				return nil, err
 			}
@@ -91,7 +90,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	if in.Networks != nil {
 		var networks []*hcloud.Network
 		for _, network := range *in.Networks {
-			network, _, err := c.HertznerClient.Network.GetByName(ctx, network)
+			network, _, err := c.Network.GetByName(ctx, network)
 			if err != nil {
 				return nil, err
 			}
@@ -103,7 +102,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 	if in.Firewalls != nil {
 		var firewalls []*hcloud.ServerCreateFirewall
 		for _, firewall := range *in.Firewalls {
-			firewall, _, err := c.HertznerClient.Firewall.GetByName(ctx, firewall)
+			firewall, _, err := c.Firewall.GetByName(ctx, firewall)
 			if err != nil {
 				return nil, err
 			}
@@ -114,7 +113,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 
 	if in.PlacementGroup != nil {
 		var placementGroup *hcloud.PlacementGroup
-		placementGroup, _, err = c.HertznerClient.PlacementGroup.GetByID(ctx, *(in.PlacementGroup))
+		placementGroup, _, err = c.PlacementGroup.GetByID(ctx, *(in.PlacementGroup))
 		if err != nil {
 			return nil, err
 		}
