@@ -10,7 +10,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-// All the below might be useful for future refactory if we find a solution to only use ServerCLient withouth the need to call the main function
+// All the below might be useful for future refactory if we find a solution to only use ServerClient withouth the need to call the main function
 // type ServerClient interface {
 // 	GetByID(ctx context.Context, id int) (*hcloud.Server, *hcloud.Response, error)
 // 	GetByName(ctx context.Context, name string) (*hcloud.Server, *hcloud.Response, error)
