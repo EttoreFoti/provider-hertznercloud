@@ -22,6 +22,7 @@ import (
 
 	serverv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/server/v1alpha1"
 	hertznercloudv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
+	volumesv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/volumes/v1alpha1"
 )
 
 func init() {
@@ -29,6 +30,7 @@ func init() {
 	AddToSchemes = append(AddToSchemes,
 		hertznercloudv1alpha1.SchemeBuilder.AddToScheme,
 		serverv1alpha1.SchemeBuilder.AddToScheme,
+		volumesv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

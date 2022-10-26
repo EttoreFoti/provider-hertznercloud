@@ -26,7 +26,7 @@ func NewServerClient(creds []byte) (ServerClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &c.HertznerClient.Server, nil //, &c.Server
+	return &c.HertznerClient.Server, nil
 }
 
 func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c hertznercloudclient.Client, ctx context.Context) (*hcloud.ServerCreateOpts, error) {
@@ -58,7 +58,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			ssh_keys = append(ssh_keys, key)
 		}
 		res.SSHKeys = ssh_keys
-		// fmt.Println("ssh_keys:", ssh_keys)
 	}
 
 	if in.Location != nil {
@@ -67,7 +66,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			return nil, err
 		}
 		res.Location = location
-		// fmt.Println("location:", location)
 	}
 
 	if in.Datacenter != nil {
@@ -76,7 +74,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			return nil, err
 		}
 		res.Datacenter = datacenter
-		// fmt.Println("datacenter:", datacenter)
 	}
 
 	if in.Volumes != nil {
@@ -89,7 +86,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			volumes = append(volumes, volume)
 		}
 		res.Volumes = volumes
-		// fmt.Println("volumes:", volumes)
 	}
 
 	if in.Networks != nil {
@@ -102,7 +98,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			networks = append(networks, network)
 		}
 		res.Networks = networks
-		// fmt.Println("networks:", networks)
 	}
 
 	if in.Firewalls != nil {
@@ -115,7 +110,6 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			firewalls = append(firewalls, &hcloud.ServerCreateFirewall{Firewall: *firewall})
 		}
 		res.Firewalls = firewalls
-		// fmt.Println("firewalls:", firewalls)
 	}
 
 	if in.PlacementGroup != nil {
@@ -125,19 +119,16 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c h
 			return nil, err
 		}
 		res.PlacementGroup = placementGroup
-		// fmt.Println("placementGroup:", placementGroup)
 	}
 
 	if in.UserData != nil {
 		userData := *in.UserData
-		// fmt.Println("userData:", userData)
 		res.UserData = userData
 	}
 
 	if in.Labels != nil {
 		labels := *in.Labels
 		res.Labels = labels
-		// fmt.Println("labels:", labels)
 	}
 
 	return res, nil
