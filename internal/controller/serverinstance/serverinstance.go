@@ -185,7 +185,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 			cr.Status.SetConditions(xpv1.Available())
 
-			isUpdated, e := serverinstance.IsUpToDate(cr.Spec.ForProvider.DeepCopy(), svr)
+			isUpdated, e := serverinstance.IsServerUpToDate(cr.Spec.ForProvider.DeepCopy(), svr)
 
 			if e != nil {
 				return managed.ExternalObservation{}, e
