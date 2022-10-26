@@ -35,7 +35,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A ServerInstance is an example API type.
+        description: A ServerInstance is a Managed resource that defines a Server
+          on HertznerCloud
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -66,44 +67,70 @@ spec:
                   of a ServerInstance.
                 properties:
                   automount:
+                    description: Whether to mount the Volumes automatically (configurable
+                      only if volumes is configured)
                     type: boolean
                   datacenter:
+                    description: The Datacenter where to put the server (configure
+                      either Location or Datacenter)
                     type: string
                   firewalls:
+                    description: Firewalls to attach to the server (use Firewalls
+                      name)
                     items:
                       type: string
                     type: array
                   image:
+                    description: The image used as OS of the server
                     type: string
                   labels:
                     additionalProperties:
                       type: string
+                    description: Simple labels to tag the server
                     type: object
                   location:
+                    description: The location (Region/Zone) where to put the server
+                      (configure either Location or Datacenter)
                     type: string
                   name:
+                    description: The name of the server; generated from the CR name
                     type: string
                   networks:
+                    description: Networks to attach to the server (use Networks name)
                     items:
                       type: string
                     type: array
                   placement_group:
+                    description: PlacementGroup to put the server in (Use PlacementGroup
+                      ID)
                     type: integer
                   public_net_ipv4:
+                    description: Bool to create or not a Public IPv4
                     type: boolean
                   public_net_ipv6:
+                    description: Bool to create or not a Public IPv4
                     type: boolean
                   server_type:
+                    description: 'The type of the instance used to create the server
+                      (ex: CX11)'
                     type: string
                   ssh_keys:
+                    description: The SSH Keys configured to be used to ssh login to
+                      the server
                     items:
                       type: string
                     type: array
                   start_after_create:
+                    description: 'Whether to start or not the server after creation
+                      (default: true)'
                     type: boolean
                   user_data:
+                    description: The UserData script to launch on first boot of the
+                      server
                     type: string
                   volumes:
+                    description: Volumes to attach to the server (configurable using
+                      Volumes ID)
                     items:
                       type: integer
                     type: array

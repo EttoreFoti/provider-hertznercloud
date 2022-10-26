@@ -27,22 +27,83 @@ import (
 
 // ServerInstanceParameters are the configurable fields of a ServerInstance.
 type ServerInstanceParameters struct {
-	Name             string             `json:"name,omitempty"` // TODO check
-	ServerType       string             `json:"server_type"`
-	Image            string             `json:"image"` // name not ID
-	SSHKeys          *[]string          `json:"ssh_keys,omitempty"`
-	Location         *string            `json:"location,omitempty"`   // name
-	Datacenter       *string            `json:"datacenter,omitempty"` // name
-	UserData         *string            `json:"user_data,omitempty"`
-	StartAfterCreate *bool              `json:"start_after_create,omitempty"`
-	Labels           *map[string]string `json:"labels,omitempty"`
-	Automount        *bool              `json:"automount,omitempty"`
-	Volumes          *[]int             `json:"volumes,omitempty"`
-	Networks         *[]string          `json:"networks,omitempty"`  // nmae
-	Firewalls        *[]string          `json:"firewalls,omitempty"` // name
-	PlacementGroup   *int               `json:"placement_group,omitempty"`
-	PublicNetIPv4    *bool              `json:"public_net_ipv4,omitempty"` // to fix json definition
-	PublicNetIPv6    *bool              `json:"public_net_ipv6,omitempty"`
+
+	// The name of the server; generated from the CR name
+	// +immutable
+	// +optional
+	Name string `json:"name,omitempty"` // TODO check
+
+	// The type of the instance used to create the server (ex: CX11)
+	// +immutable
+	ServerType string `json:"server_type"`
+
+	// The image used as OS of the server
+	// +immutable
+	Image string `json:"image"` // name not ID
+
+	// The SSH Keys configured to be used to ssh login to the server
+	// +immutable
+	// +optional
+	SSHKeys *[]string `json:"ssh_keys,omitempty"`
+
+	// The location (Region/Zone) where to put the server (configure either Location or Datacenter)
+	// +immutable
+	// +optional
+	Location *string `json:"location,omitempty"` // name
+
+	// The Datacenter where to put the server (configure either Location or Datacenter)
+	// +immutable
+	// +optional
+	Datacenter *string `json:"datacenter,omitempty"` // name
+
+	// The UserData script to launch on first boot of the server
+	// +immutable
+	// +optional
+	UserData *string `json:"user_data,omitempty"`
+
+	// Whether to start or not the server after creation (default: true)
+	// +immutable
+	// +optional
+	StartAfterCreate *bool `json:"start_after_create,omitempty"`
+
+	// Simple labels to tag the server
+	// +optional
+	Labels *map[string]string `json:"labels,omitempty"`
+
+	// Whether to mount the Volumes automatically (configurable only if volumes is configured)
+	// +optional
+	// +immutable
+	Automount *bool `json:"automount,omitempty"`
+
+	// Volumes to attach to the server (configurable using Volumes ID)
+	// +optional
+	// +immutable
+	Volumes *[]int `json:"volumes,omitempty"`
+
+	// Networks to attach to the server (use Networks name)
+	// +optional
+	// +immutable
+	Networks *[]string `json:"networks,omitempty"` // name
+
+	// Firewalls to attach to the server (use Firewalls name)
+	// +immutable
+	// +optional
+	Firewalls *[]string `json:"firewalls,omitempty"` // name
+
+	// PlacementGroup to put the server in (Use PlacementGroup ID)
+	// +immutable
+	// +optional
+	PlacementGroup *int `json:"placement_group,omitempty"`
+
+	// Bool to create or not a Public IPv4
+	// +immutable
+	// +optional
+	PublicNetIPv4 *bool `json:"public_net_ipv4,omitempty"` // to fix json definition
+
+	// Bool to create or not a Public IPv4
+	// +immutable
+	// +optional
+	PublicNetIPv6 *bool `json:"public_net_ipv6,omitempty"`
 }
 
 // ServerInstanceObservation are the observable fields of a ServerInstance.
@@ -64,7 +125,7 @@ type ServerInstanceStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A ServerInstance is an example API type.
+// A ServerInstance is a Managed resource that defines a Server on HertznerCloud
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
