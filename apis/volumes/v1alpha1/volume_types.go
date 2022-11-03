@@ -29,15 +29,26 @@ import (
 type VolumeParameters struct {
 	//+optional
 	Name string `json:"name,omitempty"`
-	Size int    `json:"size"`
+
+	// +immutable
+	Size int `json:"size"`
+
+	// +immutable
 	//+optional
 	Server *int `json:"server,omitempty"`
+
+	// +immutable
 	//+optional
 	Location *string `json:"location,omitempty"`
+
 	//+optional
 	Labels *map[string]string `json:"labels,omitempty"`
+
+	// +immutable
 	//+optional
 	Automount *bool `json:"automount,omitempty"`
+
+	// +immutable
 	//+optional
 	Format *string `json:"format,omitempty"`
 }
