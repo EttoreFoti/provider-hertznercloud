@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,6 +35,7 @@ import (
 
 	apisv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
 	"github.com/crossplane/provider-hertznercloud/apis/volumes/v1alpha1"
+	hertznercloud "github.com/crossplane/provider-hertznercloud/internal/clients"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/features"
 )
 
@@ -47,10 +49,22 @@ const (
 )
 
 // A VolumeService does nothing.
-type VolumeService struct{}
+type VolumeService struct {
+	client *hcloud.Client
+}
 
 var (
-	newVolumeService = func(_ []byte) (interface{}, error) { return &VolumeService{}, nil }
+	newVolumeService = func(creds []byte) (*VolumeService, error) {
+		c, err := hertznercloud.NewClientHertzner(creds)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &VolumeService{
+			client: c,
+		}, nil
+	}
 )
 
 // Setup adds a controller that reconciles Volume managed resources.
@@ -84,7 +98,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	newServiceFn func(creds []byte) (*VolumeService, error)
 }
 
 // Connect typically produces an ExternalClient by:
@@ -126,7 +140,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
+	service *VolumeService
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {

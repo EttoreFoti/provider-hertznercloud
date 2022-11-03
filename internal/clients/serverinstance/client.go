@@ -28,7 +28,7 @@ import (
 // 	return &c.Server, nil
 // }
 
-func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c *hcloud.Client, ctx context.Context) (*hcloud.ServerCreateOpts, error) {
+func FromServerSpecToServerRequestOpts(in *v1alpha1.ServerInstanceParameters, c *hcloud.Client, ctx context.Context) (*hcloud.ServerCreateOpts, error) {
 
 	serverType, _, err := c.ServerType.GetByName(ctx, in.ServerType)
 
@@ -134,7 +134,7 @@ func FromServerSpecToServerRequestOpts(in v1alpha1.ServerInstanceParameters, c *
 
 }
 
-func IsServerUpToDate(in *v1alpha1.ServerInstanceParameters, o *hcloud.Server) (bool, error) { //TODO update ignore fields because there are only a few fields we can update
+func IsServerUpToDate(in *v1alpha1.ServerInstanceParameters, o *hcloud.Server) (bool, error) {
 
 	// Labels is the only updatable fields
 

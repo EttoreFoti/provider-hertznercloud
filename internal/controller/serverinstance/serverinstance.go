@@ -223,7 +223,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
-	serverCreateOps, _ := serverinstance.FromServerSpecToServerRequestOpts(*cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+	serverCreateOps, _ := serverinstance.FromServerSpecToServerRequestOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
 	serverCreateOps.Name = meta.GetExternalName(cr)
 
 	scr, _, err := c.service.client.Server.Create(ctx, *serverCreateOps)
