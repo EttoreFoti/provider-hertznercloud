@@ -27,27 +27,35 @@ import (
 
 // VolumeParameters are the configurable fields of a Volume.
 type VolumeParameters struct {
+
+	// Name of the volume
 	//+optional
 	Name string `json:"name,omitempty"`
 
+	// Size of the Volume in GB
 	// +immutable
 	Size int `json:"size"`
 
+	// Server to which to attach the Volume once it's created (Volume will be created in the same Location as the server) (Server ID)
 	// +immutable
 	//+optional
 	Server *int `json:"server,omitempty"`
 
+	// Location to create the Volume in (can be omitted if Server is specified)
 	// +immutable
 	//+optional
 	Location *string `json:"location,omitempty"`
 
+	// User-defined labels (key-value pairs)
 	//+optional
 	Labels *map[string]string `json:"labels,omitempty"`
 
+	// Auto-mount Volume after attach. server must be provided.
 	// +immutable
 	//+optional
 	Automount *bool `json:"automount,omitempty"`
 
+	// Format Volume after creation. One of: xfs, ext4
 	// +immutable
 	//+optional
 	Format *string `json:"format,omitempty"`

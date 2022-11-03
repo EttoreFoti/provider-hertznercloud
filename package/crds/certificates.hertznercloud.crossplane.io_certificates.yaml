@@ -5,18 +5,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: volumes.volumes.hertznercloud.crossplane.io
+  name: certificates.certificates.hertznercloud.crossplane.io
 spec:
-  group: volumes.hertznercloud.crossplane.io
+  group: certificates.hertznercloud.crossplane.io
   names:
     categories:
     - crossplane
     - managed
     - hertznercloud
-    kind: Volume
-    listKind: VolumeList
-    plural: volumes
-    singular: volume
+    kind: Certificate
+    listKind: CertificateList
+    plural: certificates
+    singular: certificate
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -35,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Volume is an example API type.
+        description: A Certificate is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A VolumeSpec defines the desired state of a Volume.
+            description: A CertificateSpec defines the desired state of a Certificate.
             properties:
               deletionPolicy:
                 default: Delete
@@ -62,36 +62,40 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: VolumeParameters are the configurable fields of a Volume.
+                description: CertificateParameters are the configurable fields of
+                  a Certificate.
                 properties:
-                  automount:
-                    description: Auto-mount Volume after attach. server must be provided.
-                    type: boolean
-                  format:
-                    description: 'Format Volume after creation. One of: xfs, ext4'
+                  certificate:
+                    description: Certificate and chain in PEM format, in order so
+                      that each record directly certifies the one preceding. Required
+                      for type uploaded Certificates.
                     type: string
+                  domain_names:
+                    description: Domains and subdomains that should be contained in
+                      the Certificate issued by Let's Encrypt. Required for type managed
+                      Certificates.
+                    items:
+                      type: string
+                    type: array
                   labels:
                     additionalProperties:
                       type: string
-                    description: User-defined labels (key-value pairs)
+                    description: Simple labels to tag the Certificate
                     type: object
-                  location:
-                    description: Location to create the Volume in (can be omitted
-                      if Server is specified)
-                    type: string
                   name:
-                    description: Name of the volume
+                    description: The Certifiacte name
                     type: string
-                  server:
-                    description: Server to which to attach the Volume once it's created
-                      (Volume will be created in the same Location as the server)
-                      (Server ID)
-                    type: integer
-                  size:
-                    description: Size of the Volume in GB
-                    type: integer
+                  privatekey:
+                    description: Certificate key in PEM format. Required for type
+                      uploaded Certificates.
+                    type: string
+                  type:
+                    description: Choose between uploading a Certificate in PEM format
+                      or requesting a managed Let's Encrypt Certificate. If omitted
+                      defaults to uploaded. (uploaded | managed)
+                    type: string
                 required:
-                - size
+                - name
                 type: object
               providerConfigRef:
                 default:
@@ -265,10 +269,11 @@ spec:
             - forProvider
             type: object
           status:
-            description: A VolumeStatus represents the observed state of a Volume.
+            description: A CertificateStatus represents the observed state of a Certificate.
             properties:
               atProvider:
-                description: VolumeObservation are the observable fields of a Volume.
+                description: CertificateObservation are the observable fields of a
+                  Certificate.
                 properties:
                   status:
                     type: string

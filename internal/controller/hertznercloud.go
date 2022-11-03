@@ -20,6 +20,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/crossplane/provider-hertznercloud/internal/controller/certificate"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/config"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/serverinstance"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/volume"
@@ -32,6 +33,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		config.Setup,
 		serverinstance.Setup,
 		volume.Setup,
+		certificate.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err
