@@ -55,7 +55,7 @@ type VolumeParameters struct {
 
 // VolumeObservation are the observable fields of a Volume.
 type VolumeObservation struct {
-	ObservableField string `json:"observableField,omitempty"`
+	State string `json:"status,omitempty"`
 }
 
 // A VolumeSpec defines the desired state of a Volume.

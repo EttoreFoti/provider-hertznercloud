@@ -26,9 +26,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -36,6 +38,7 @@ import (
 	apisv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
 	"github.com/crossplane/provider-hertznercloud/apis/volumes/v1alpha1"
 	hertznercloud "github.com/crossplane/provider-hertznercloud/internal/clients"
+	"github.com/crossplane/provider-hertznercloud/internal/clients/volume"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/features"
 )
 
@@ -152,6 +155,42 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
 
+	vol, _, err := c.service.client.Volume.Get(ctx, meta.GetExternalName(cr))
+
+	if vol == nil && err == nil {
+		return managed.ExternalObservation{
+			ResourceExists: false,
+		}, nil
+	}
+
+	if err != nil {
+		if hErr, ok := err.(*hcloud.Error); ok && hErr.Code == hcloud.ErrorCodeNotFound { // this might need improving!!
+			return managed.ExternalObservation{
+				ResourceExists: false,
+			}, nil
+		}
+	}
+
+	if vol != nil {
+		if vol.Status == hcloud.VolumeStatusAvailable {
+
+			cr.Status.SetConditions(xpv1.Available())
+
+			isUpdated, e := volume.IsVolumeUpToDate(cr.Spec.ForProvider.DeepCopy(), vol)
+
+			if e != nil {
+				return managed.ExternalObservation{}, e
+			}
+
+			if !isUpdated && e == nil {
+				return managed.ExternalObservation{
+					ResourceExists:   true,
+					ResourceUpToDate: false,
+				}, nil
+			}
+		}
+	}
+
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -177,6 +216,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
+	volumeCreateOps, _ := volume.FromVolumeSpecToVolumeCreateOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+	volumeCreateOps.Name = meta.GetExternalName(cr)
+
+	vol, _, err := c.service.client.Volume.Create(ctx, *volumeCreateOps)
+
+	if err != nil {
+		return managed.ExternalCreation{
+			// Optionally return any details that may be required to connect to the
+			// external resource. These will be stored as the connection secret.
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, err
+	}
+
+	cr.Status.AtProvider.State = string(vol.Volume.Status)
+
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -192,6 +246,18 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Updating: %+v", cr)
 
+	vol, _, err := c.service.client.Volume.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+
+	opts := hcloud.VolumeUpdateOpts{
+		Labels: *cr.Spec.ForProvider.DeepCopy().Labels,
+	}
+
+	c.service.client.Volume.Update(ctx, vol, opts)
+
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -203,6 +269,18 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.Volume)
 	if !ok {
 		return errors.New(errNotVolume)
+	}
+
+	vol, _, err := c.service.client.Volume.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return err
+	}
+
+	_, e := c.service.client.Volume.Delete(ctx, vol)
+
+	if e != nil {
+		return e
 	}
 
 	fmt.Printf("Deleting: %+v", cr)

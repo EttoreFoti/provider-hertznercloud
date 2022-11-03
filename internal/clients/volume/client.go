@@ -54,7 +54,7 @@ func FromVolumeSpecToVolumeCreateOpts(in *v1alpha1.VolumeParameters, c *hcloud.C
 
 }
 
-func IsVolumeUpToDate(in *v1alpha1.VolumeParameters, o *hcloud.Server) (bool, error) {
+func IsVolumeUpToDate(in *v1alpha1.VolumeParameters, o *hcloud.Volume) (bool, error) {
 
 	// Labels is the only updatable fields
 

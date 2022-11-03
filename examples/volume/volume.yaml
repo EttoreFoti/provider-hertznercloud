@@ -1,0 +1,15 @@
+---
+apiVersion: volumes.hertznercloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: test-volume
+spec:
+  forProvider:
+    name: test-volume
+    size: 20
+    labels:
+      test: 'testvolume'
+    format: ext4
+    location: nbg1
+  providerConfigRef:
+    name: provider-hertznercloud-config

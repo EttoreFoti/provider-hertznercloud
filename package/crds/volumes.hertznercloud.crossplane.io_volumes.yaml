@@ -260,7 +260,7 @@ spec:
               atProvider:
                 description: VolumeObservation are the observable fields of a Volume.
                 properties:
-                  observableField:
+                  status:
                     type: string
                 type: object
               conditions:

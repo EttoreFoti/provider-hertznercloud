@@ -22,6 +22,7 @@ import (
 
 	"github.com/crossplane/provider-hertznercloud/internal/controller/config"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/serverinstance"
+	"github.com/crossplane/provider-hertznercloud/internal/controller/volume"
 )
 
 // Setup creates all HertznerCloud controllers with the supplied logger and adds them to
@@ -30,6 +31,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
 		serverinstance.Setup,
+		volume.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err
