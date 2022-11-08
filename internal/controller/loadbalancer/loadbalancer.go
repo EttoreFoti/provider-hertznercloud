@@ -213,7 +213,24 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotLoadBalancer)
 	}
 
-	fmt.Printf("Creating: %+v", cr)
+	loadBalancerCreateOpts, _ := loadbalancer.FromLoadBalancerParametersToLoadBalancerCreateOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+
+	loadBalancerCreateOpts.Name = meta.GetExternalName(cr)
+
+	lb, _, err := c.service.client.LoadBalancer.Create(ctx, *loadBalancerCreateOpts)
+
+	if err != nil {
+		return managed.ExternalCreation{
+			// Optionally return any details that may be required to connect to the
+			// external resource. These will be stored as the connection secret.
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, err
+	}
+
+	// TODO
+	// cr.Status.AtProvider.State = string(lb.LoadBalancer.Created)
+
+	fmt.Printf("Creating: %+v", lb)
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -230,6 +247,18 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Updating: %+v", cr)
 
+	lb, _, err := c.service.client.LoadBalancer.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+
+	opts := hcloud.LoadBalancerUpdateOpts{
+		Labels: *cr.Spec.ForProvider.DeepCopy().Labels,
+	}
+
+	c.service.client.LoadBalancer.Update(ctx, lb, opts)
+
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -243,6 +272,17 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotLoadBalancer)
 	}
 
+	lb, _, err := c.service.client.LoadBalancer.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return err
+	}
+
+	_, e := c.service.client.LoadBalancer.Delete(ctx, lb)
+
+	if e != nil {
+		return e
+	}
 	fmt.Printf("Deleting: %+v", cr)
 
 	return nil
