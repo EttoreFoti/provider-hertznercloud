@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	certificatesv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/certificates/v1alpha1"
+	networkingv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/networking/v1alpha1"
 	serverv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/server/v1alpha1"
 	hertznercloudv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
 	volumesv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/volumes/v1alpha1"
@@ -33,6 +34,7 @@ func init() {
 		serverv1alpha1.SchemeBuilder.AddToScheme,
 		volumesv1alpha1.SchemeBuilder.AddToScheme,
 		certificatesv1alpha1.SchemeBuilder.AddToScheme,
+		networkingv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 
