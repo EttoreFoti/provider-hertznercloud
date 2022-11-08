@@ -20,21 +20,24 @@ import (
 	"context"
 	"fmt"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/connection"
+	"github.com/crossplane/crossplane-runtime/pkg/controller"
+	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/crossplane/crossplane-runtime/pkg/connection"
-	"github.com/crossplane/crossplane-runtime/pkg/controller"
-	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
-	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
-
 	"github.com/crossplane/provider-hertznercloud/apis/certificates/v1alpha1"
 	apisv1alpha1 "github.com/crossplane/provider-hertznercloud/apis/v1alpha1"
+	hertznercloud "github.com/crossplane/provider-hertznercloud/internal/clients"
+	"github.com/crossplane/provider-hertznercloud/internal/clients/certificate"
 	"github.com/crossplane/provider-hertznercloud/internal/controller/features"
 )
 
@@ -53,7 +56,17 @@ type CertificateService struct {
 }
 
 var (
-	newCertificateService = func(_ []byte) (interface{}, error) { return &CertificateService{}, nil }
+	newCertificateService = func(creds []byte) (*CertificateService, error) {
+		c, err := hertznercloud.NewClientHertzner(creds)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &CertificateService{
+			client: c,
+		}, nil
+	}
 )
 
 // Setup adds a controller that reconciles Certificate managed resources.
@@ -87,7 +100,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	newServiceFn func(creds []byte) (*CertificateService, error)
 }
 
 // Connect typically produces an ExternalClient by:
@@ -129,7 +142,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
+	service *CertificateService
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -140,6 +153,61 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
+
+	cert, _, err := c.service.client.Certificate.Get(ctx, meta.GetExternalName(cr))
+
+	if cert == nil && err == nil {
+		return managed.ExternalObservation{
+			ResourceExists: false,
+		}, nil
+	}
+
+	if err != nil {
+		if hErr, ok := err.(*hcloud.Error); ok && hErr.Code == hcloud.ErrorCodeNotFound { // this might need improving!!
+			return managed.ExternalObservation{
+				ResourceExists: false,
+			}, nil
+		}
+	}
+
+	if cert != nil {
+
+		if cert.Type == hcloud.CertificateTypeManaged {
+			if cert.Status.Issuance == hcloud.CertificateStatusTypeCompleted {
+				cr.Status.SetConditions(xpv1.Available())
+
+				isUpdated, e := certificate.IsCertificateUpToDate(cr.Spec.ForProvider.DeepCopy(), cert)
+
+				if e != nil {
+					return managed.ExternalObservation{}, e
+				}
+
+				if !isUpdated && e == nil {
+					return managed.ExternalObservation{
+						ResourceExists:   true,
+						ResourceUpToDate: false,
+					}, nil
+				}
+			}
+		}
+
+		if cert.Type == hcloud.CertificateTypeUploaded {
+			cr.Status.SetConditions(xpv1.Available())
+
+			isUpdated, e := certificate.IsCertificateUpToDate(cr.Spec.ForProvider.DeepCopy(), cert)
+
+			if e != nil {
+				return managed.ExternalObservation{}, e
+			}
+
+			if !isUpdated && e == nil {
+				return managed.ExternalObservation{
+					ResourceExists:   true,
+					ResourceUpToDate: false,
+				}, nil
+			}
+		}
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -166,6 +234,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Creating: %+v", cr)
 
+	certificateCreateOps, _ := certificate.FromCertificateSpecToCertificateCreateOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+	certificateCreateOps.Name = meta.GetExternalName(cr)
+
+	cert, _, err := c.service.client.Certificate.Create(ctx, *certificateCreateOps)
+
+	if err != nil {
+		return managed.ExternalCreation{
+			// Optionally return any details that may be required to connect to the
+			// external resource. These will be stored as the connection secret.
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, err
+	}
+
+	cr.Status.AtProvider.State = string(cert.Status.Issuance)
+
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -181,6 +264,18 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	fmt.Printf("Updating: %+v", cr)
 
+	cert, _, err := c.service.client.Certificate.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+
+	opts := hcloud.CertificateUpdateOpts{
+		Labels: *cr.Spec.ForProvider.DeepCopy().Labels,
+	}
+
+	c.service.client.Certificate.Update(ctx, cert, opts)
+
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// external resource. These will be stored as the connection secret.
@@ -195,6 +290,18 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	fmt.Printf("Deleting: %+v", cr)
+
+	cert, _, err := c.service.client.Certificate.Get(ctx, meta.GetExternalName(cr))
+
+	if err != nil {
+		return err
+	}
+
+	_, e := c.service.client.Certificate.Delete(ctx, cert)
+
+	if e != nil {
+		return e
+	}
 
 	return nil
 }
