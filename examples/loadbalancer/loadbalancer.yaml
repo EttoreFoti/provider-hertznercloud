@@ -1,0 +1,14 @@
+apiVersion: networking.hertznercloud.crossplane.io/v1alpha1
+kind: LoadBalancer
+metadata:
+  name: test
+spec:
+  forProvider:
+    name: test
+    algorithm:
+      type: round_robin
+    load_balancer_type: lb11
+    location: nbg1
+    public_interface: false
+  providerConfigRef:
+    name: provider-hertznercloud-config

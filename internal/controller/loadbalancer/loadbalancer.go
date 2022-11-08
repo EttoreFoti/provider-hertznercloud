@@ -213,12 +213,19 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotLoadBalancer)
 	}
 
-	loadBalancerCreateOpts, _ := loadbalancer.FromLoadBalancerParametersToLoadBalancerCreateOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+	fmt.Println("\n\nCreating:")
+
+	loadBalancerCreateOpts, err := loadbalancer.FromLoadBalancerParametersToLoadBalancerCreateOpts(cr.Spec.ForProvider.DeepCopy(), c.service.client, ctx)
+
+	if err != nil {
+		fmt.Println("\n\nError:", err)
+	}
 
 	loadBalancerCreateOpts.Name = meta.GetExternalName(cr)
 
+	fmt.Println("\n\nDebug1\n\n", loadBalancerCreateOpts)
 	lb, _, err := c.service.client.LoadBalancer.Create(ctx, *loadBalancerCreateOpts)
-
+	fmt.Println("\n\nDebug2", lb)
 	if err != nil {
 		return managed.ExternalCreation{
 			// Optionally return any details that may be required to connect to the

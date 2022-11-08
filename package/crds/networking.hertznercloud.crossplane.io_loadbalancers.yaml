@@ -271,8 +271,7 @@ spec:
                           type: object
                         targets:
                           description: List of selected targets
-                          items: {}
-                          type: array
+                          x-kubernetes-preserve-unknown-fields: true
                         type:
                           description: Type of the resource (server, label_selector
                             or ip)

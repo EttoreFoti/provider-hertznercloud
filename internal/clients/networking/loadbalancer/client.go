@@ -38,7 +38,9 @@ func FromLoadBalancerParametersToLoadBalancerCreateOpts(in *v1alpha1.LoadBalance
 
 	res.LoadBalancerType = t
 
-	res.Algorithm.Type = hcloud.LoadBalancerAlgorithmType(in.Algorithm.Type)
+	res.Algorithm = &hcloud.LoadBalancerAlgorithm{
+		Type: hcloud.LoadBalancerAlgorithmType(in.Algorithm.Type),
+	}
 
 	if in.Location != nil {
 		l, _, err := c.Location.Get(ctx, *in.Location)
@@ -102,6 +104,7 @@ func FromLoadBalancerParametersToLoadBalancerCreateOpts(in *v1alpha1.LoadBalance
 	return res, nil
 
 }
+
 func IsLoadBalancerUpToDate(in *v1alpha1.LoadBalancerParameters, o *hcloud.LoadBalancer) (bool, error) {
 
 	// Labels is the only updatable fields

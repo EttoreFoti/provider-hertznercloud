@@ -119,7 +119,11 @@ type LoadBalancerTarget struct {
 	// Use the private network IP instead of the public IP. Default value is false.
 	UsePrivateIP *bool `json:"use_private_ip,omitempty"`
 
+	// following kubebuilder annotations are required becuase of ==>https://github.com/kubernetes-sigs/controller-tools/issues/585
+
 	//+optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
 	// List of selected targets
 	Targets *[]LoadBalancerTarget `json:"targets,omitempty"`
 }
